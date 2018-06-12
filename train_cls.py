@@ -36,7 +36,7 @@ parser.add_argument('--test-step', default=1000, type=int, metavar='N',
                     help='number of iter to evaluate ')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
-parser.add_argument('-bs',  '--batch-size', default=2, type=int,
+parser.add_argument('-bs',  '--batch-size', default=2 , type=int,
                     metavar='N', help='mini-batch size (default: 2)')
 parser.add_argument('--lr', '--learning-rate', default=0.002, type=float,
                     metavar='LR', help='initial learning rate')
@@ -51,9 +51,9 @@ if is_GPU:
     torch.cuda.set_device(args.gpu)
 
 
-my_dataset=pts_cls_dataset(datalist_path=args.data)
+my_dataset=pts_cls_dataset(datalist_path=args.data,num_points=2048)
 data_loader = torch.utils.data.DataLoader(my_dataset,
-            batch_size=args.batch_size, shuffle=True, num_workers=4,collate_fn=pts_collate)
+            batch_size=args.batch_size, shuffle=True, num_workers=1,collate_fn=pts_collate)
 
 net=PointNet_cls()
 if is_GPU:
@@ -124,15 +124,23 @@ def train():
         init_epochtime = time.time()
 
         for batch_idx, (pts, label) in enumerate(data_loader):
+            t1=time.time()
             if is_GPU:
                 pts = Variable(pts.cuda())
                 label = Variable(label.cuda())
             else:
                 pts = Variable(pts)
                 label = Variable(label)
-            pred = net(pts)
+            pred,trans = net(pts) ## trans [N,64,64]
 
             loss = critenrion(pred, label)
+            K = trans.size(1)
+            reg_loss = torch.bmm(trans, trans.transpose(2, 1))
+            iden=Variable(torch.eye(K))
+            reg_loss -= iden
+            reg_loss=reg_loss*reg_loss
+
+            loss = loss + reg_loss.sum()
 
             _, pred_index = torch.max(pred, dim=1)
             num_correct = (pred_index.eq(label)).data.cpu().sum()

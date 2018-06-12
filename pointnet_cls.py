@@ -9,7 +9,7 @@ from torch.autograd import Variable
 # transform net
 ################
 class transform_net(nn.Module):
-    def __init__(self, featdim=3, num_pts=1024):
+    def __init__(self, featdim=3, num_pts=2048):
         super(transform_net, self).__init__()
         self.num_pts = num_pts
         self.featdim = featdim
@@ -66,12 +66,11 @@ class transform_net(nn.Module):
             iden = iden.cuda()
         x = x + iden
         x = x.view(-1, self.featdim, self.featdim)
-        #print (x.size())
         return x
 
 
 class PointNet_cls(nn.Module):
-    def __init__(self, num_class=40,num_pts=1024):
+    def __init__(self, num_class=40,num_pts=2048):
         super(PointNet_cls, self).__init__()
         self.num_cls = num_class
         self.num_pts=num_pts
@@ -102,8 +101,8 @@ class PointNet_cls(nn.Module):
             nn.ReLU(),
         )
 
-        self.input_transorm_net = transform_net(featdim=3)
-        self.feature_transorm_net = transform_net(featdim=64)
+        self.input_transorm_net = transform_net(featdim=3,num_pts=num_pts)
+        self.feature_transorm_net = transform_net(featdim=64,num_pts=num_pts)
         self.max_pool = nn.MaxPool1d(kernel_size=self.num_pts)
 
         self.classifer=nn.Sequential(
@@ -137,11 +136,13 @@ class PointNet_cls(nn.Module):
         scores=self.classifer(feature_vector) ##[N,40]
         pred=F.log_softmax(scores, dim=-1)
 
-        return pred
+        return pred,trans2
+
+
 
 """
 from data_utils import pts_cls_dataset,pts_collate
-my_dataset=pts_cls_dataset(datalist_path='/home/gaoyuzhe/Downloads/3d_data/modelnet/test_files.txt',num_points=1024)
+my_dataset=pts_cls_dataset(datalist_path='/home/gaoyuzhe/Downloads/3d_data/modelnet/test_files.txt',num_points=2048)
 data_loader = torch.utils.data.DataLoader(my_dataset,
             batch_size=2, shuffle=True, collate_fn=pts_collate)
 
