@@ -18,7 +18,7 @@ from data_utils import pts_cls_dataset,pts_collate
 
 is_GPU=torch.cuda.is_available()
 
-parser = argparse.ArgumentParser(description='KD-network')
+parser = argparse.ArgumentParser(description='pointnet')
 parser.add_argument('--data', metavar='DIR',default='/home/gaoyuzhe/Downloads/3d_data/modelnet/test_files.txt',
                     help='txt file to dataset')
 parser.add_argument('--data-eval', metavar='DIR',default='/home/gaoyuzhe/Downloads/3d_data/modelnet/test_files.txt',
@@ -28,7 +28,7 @@ parser.add_argument('--log', metavar='LOG',default='log.txt',
 
 parser.add_argument('--gpu', default=0, type=int, metavar='N',
                     help='the index  of GPU where program run')
-parser.add_argument('--epochs', default=200, type=int, metavar='N',
+parser.add_argument('--epochs', default=250, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--log-step', default=500, type=int, metavar='N',
                     help='number of iter to write log')
@@ -38,8 +38,12 @@ parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
 parser.add_argument('-bs',  '--batch-size', default=2 , type=int,
                     metavar='N', help='mini-batch size (default: 2)')
-parser.add_argument('--lr', '--learning-rate', default=0.002, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
                     metavar='LR', help='initial learning rate')
+parser.add_argument('--decay_step', default=200000, type=int,
+                    metavar='LR', help='decay_step of learning rate')
+parser.add_argument('--decay_rate', default=0.7, type=float,
+                    metavar='LR', help='decay_rate of learning rate')
 
 
 parser.add_argument('--resume', default='checkpoint.pth',type=str, metavar='PATH',help='path to latest checkpoint ')
@@ -51,9 +55,9 @@ if is_GPU:
     torch.cuda.set_device(args.gpu)
 
 
-my_dataset=pts_cls_dataset(datalist_path=args.data,num_points=2048)
+my_dataset=pts_cls_dataset(datalist_path=args.data)
 data_loader = torch.utils.data.DataLoader(my_dataset,
-            batch_size=args.batch_size, shuffle=True, num_workers=1,collate_fn=pts_collate)
+            batch_size=args.batch_size, shuffle=True, num_workers=4,collate_fn=pts_collate)
 
 net=PointNet_cls()
 if is_GPU:
@@ -158,6 +162,13 @@ def train():
                 evaluate(net)
             if num_iter%(args.log_step)==0 and num_iter!=0:
                 log(logname, epoch, num_iter, loss.data)
+
+            if num_iter%args.decay_step==0 and num_iter!=0:
+                f1 = open(logname, 'a')
+                f1.write("learning rate decay in iter{}\n".format(num_iter))
+                print ("learning rate decay in iter{}\n".format(num_iter))
+                for param in optimizer.param_groups:
+                    param['lr'] *= max(args.decay_rate,0.00001)
 
         end_epochtime = time.time()
         print('--------------------------------------------------------')

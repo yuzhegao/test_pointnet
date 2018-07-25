@@ -9,7 +9,7 @@ from torch.autograd import Variable
 # transform net
 ################
 class transform_net(nn.Module):
-    def __init__(self, featdim=3, num_pts=2048):
+    def __init__(self, featdim=3, num_pts=1024):
         super(transform_net, self).__init__()
         self.num_pts = num_pts
         self.featdim = featdim
@@ -70,7 +70,7 @@ class transform_net(nn.Module):
 
 
 class PointNet_cls(nn.Module):
-    def __init__(self, num_class=40,num_pts=2048):
+    def __init__(self, num_class=40,num_pts=1024):
         super(PointNet_cls, self).__init__()
         self.num_cls = num_class
         self.num_pts=num_pts
