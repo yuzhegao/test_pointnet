@@ -95,7 +95,7 @@ def evaluate(model_test):
         else:
             pts = Variable(pts)
             label = Variable(label)
-        pred = net(pts)
+        pred,_ = net(pts)
 
         _, pred_index = torch.max(pred, dim=1)
         num_correct = (pred_index.eq(label)).data.cpu().sum().item()
@@ -140,7 +140,10 @@ def train():
             loss = critenrion(pred, label)
             K = trans.size(1)
             reg_loss = torch.bmm(trans, trans.transpose(2, 1))
-            iden=Variable(torch.eye(K))
+            if is_GPU:
+                iden = Variable(torch.eye(K).cuda())
+            else:
+                iden = Variable(torch.eye(K))
             reg_loss -= iden
             reg_loss=reg_loss*reg_loss
 
@@ -157,7 +160,7 @@ def train():
             num_iter+=1
 
             print('In Epoch{} Iter{},loss={} accuracy={}  time cost:{}'.format(epoch,num_iter, loss.data,num_correct.item() / args.batch_size,t2-t1))
-            if num_iter%(args.log_step*10)==0 and num_iter!=0:
+            if num_iter%(1*10)==0 and num_iter!=0:
                 save_checkpoint(epoch, net, num_iter)
                 evaluate(net)
             if num_iter%(args.log_step)==0 and num_iter!=0:
