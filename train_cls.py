@@ -160,18 +160,19 @@ def train():
             num_iter+=1
 
             print('In Epoch{} Iter{},loss={} accuracy={}  time cost:{}'.format(epoch,num_iter, loss.data,num_correct.item() / args.batch_size,t2-t1))
-            if num_iter%(1*10)==0 and num_iter!=0:
+            if num_iter%(args.log_step*10)==0 and num_iter!=0:
                 save_checkpoint(epoch, net, num_iter)
                 evaluate(net)
             if num_iter%(args.log_step)==0 and num_iter!=0:
                 log(logname, epoch, num_iter, loss.data)
 
-            if num_iter%args.decay_step==0 and num_iter!=0:
+            if (num_iter*args.batch_size)%args.decay_step==0 and num_iter!=0:
                 f1 = open(logname, 'a')
                 f1.write("learning rate decay in iter{}\n".format(num_iter))
                 print ("learning rate decay in iter{}\n".format(num_iter))
                 for param in optimizer.param_groups:
-                    param['lr'] *= max(args.decay_rate,0.00001)
+                    param['lr'] *= args.decay_rate
+                    param['lr'] = max(param['lr'],0.00001)
 
         end_epochtime = time.time()
         print('--------------------------------------------------------')
