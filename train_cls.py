@@ -78,12 +78,13 @@ def log(filename,epoch,batch,loss):
         f1.write("\nstart training in {}".format(time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))))
 
     f1.write('\nin epoch{} batch{} loss={} '.format(epoch,batch,loss))
+    f1.close()
 
 def evaluate(model_test):
     model_test.eval()
     total_correct=0
 
-    data_eval = pts_cls_dataset(datalist_path=args.data_eval)
+    data_eval = pts_cls_dataset(datalist_path=args.data_eval,data_argument=False)
     eval_loader = torch.utils.data.DataLoader(data_eval,
                     batch_size=4, shuffle=True, collate_fn=pts_collate)
     print ("dataset size:",len(eval_loader.dataset))
@@ -169,6 +170,7 @@ def train():
             if (num_iter*args.batch_size)%args.decay_step==0 and num_iter!=0:
                 f1 = open(logname, 'a')
                 f1.write("learning rate decay in iter{}\n".format(num_iter))
+                f1.close()
                 print ("learning rate decay in iter{}\n".format(num_iter))
                 for param in optimizer.param_groups:
                     param['lr'] *= args.decay_rate
