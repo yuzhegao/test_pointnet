@@ -109,9 +109,11 @@ class PointNet_cls(nn.Module):
             nn.Linear(1024,512),
             nn.BatchNorm1d(512),
             nn.ReLU(),
+            nn.Dropout(p=0.7),
             nn.Linear(512,256),
             nn.BatchNorm1d(256),
             nn.ReLU(),
+            nn.Dropout(p=0.7),
             nn.Linear(256,self.num_cls)
         )
 
