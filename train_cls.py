@@ -96,7 +96,19 @@ def evaluate(model_test):
         else:
             pts = Variable(pts)
             label = Variable(label)
-        pred,_ = net(pts)
+        pred,trans = net(pts)
+
+        loss = critenrion(pred, label)
+        K = trans.size(1)
+        reg_loss = torch.bmm(trans, trans.transpose(2, 1))
+        if is_GPU:
+            iden = Variable(torch.eye(K).cuda())
+        else:
+            iden = Variable(torch.eye(K))
+        reg_loss -= iden
+        reg_loss = reg_loss * reg_loss
+
+        loss = loss + reg_loss.sum()
 
         _, pred_index = torch.max(pred, dim=1)
         num_correct = (pred_index.eq(label)).data.cpu().sum().item()
@@ -106,6 +118,7 @@ def evaluate(model_test):
 
     model_test.train()
     with open(logname,'a') as f:
+        f.write('\nthe evaluate average loss:{}'.format(loss.data))
         f.write('\nthe evaluate average accuracy:{}'.format(total_correct*1.0/(len(eval_loader.dataset))))
 
 def train():
@@ -115,7 +128,10 @@ def train():
     start_epoch=0
 
     if os.path.exists(args.resume):
-        checkoint = torch.load(args.resume)
+        if is_GPU:
+            checkoint = torch.load(args.resume)
+        else:
+            checkoint = torch.load(args.resume, map_location=lambda storage, loc: storage)
         start_epoch = checkoint['epoch']
         net.load = net.load_state_dict(checkoint['model'])
         num_iter= checkoint['iter']
@@ -181,5 +197,7 @@ def train():
         print('in epoch:{} use time:{}'.format(epoch, end_epochtime - init_epochtime))
         print('-------------------------------------------------------- \n')
 
+    save_checkpoint(args.epochs-1, net, num_iter)
+    evaluate(net)
 
 train()
