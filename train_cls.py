@@ -98,18 +98,6 @@ def evaluate(model_test):
             label = Variable(label)
         pred,trans = net(pts)
 
-        loss = critenrion(pred, label)
-        K = trans.size(1)
-        reg_loss = torch.bmm(trans, trans.transpose(2, 1))
-        if is_GPU:
-            iden = Variable(torch.eye(K).cuda())
-        else:
-            iden = Variable(torch.eye(K))
-        reg_loss -= iden
-        reg_loss = reg_loss * reg_loss
-
-        loss = loss + reg_loss.sum()
-
         _, pred_index = torch.max(pred, dim=1)
         num_correct = (pred_index.eq(label)).data.cpu().sum().item()
         total_correct +=num_correct
@@ -118,7 +106,6 @@ def evaluate(model_test):
 
     model_test.train()
     with open(logname,'a') as f:
-        f.write('\nthe evaluate average loss:{}'.format(loss.data))
         f.write('\nthe evaluate average accuracy:{}'.format(total_correct*1.0/(len(eval_loader.dataset))))
 
 def train():

@@ -27,13 +27,31 @@ def load_cls(filelist,use_extra_feature=False):
     return (np.concatenate(points, axis=0),
             np.concatenate(labels, axis=0))
 
+def load_seg(filelist):
+    points = []
+    labels = []
+    seg_labels=[]
+
+    folder = os.path.dirname(filelist)
+    for line in open(filelist):
+        filename = os.path.basename(line.rstrip())
+        data = h5py.File(os.path.join(folder, filename))
+
+        points.append(data['data'][...].astype(np.float32))
+        labels.append(np.squeeze(data['label'][:]).astype(np.int64))
+        seg_labels.append(data['pid'][:].astype(np.int64))
+    return (np.concatenate(points, axis=0),
+            np.concatenate(labels, axis=0),
+            np.concatenate(seg_labels, axis=0))
+
+
 #########################
 # modelnet40
+# modelnet40_ply_hdf5_2048.zip
 #########################
 class pts_cls_dataset(data.Dataset):
-    def __init__(self,datalist_path,num_points=1024,max_depth=10,data_argument=True,use_extra_feature=False):
+    def __init__(self,datalist_path,num_points=1024,data_argument=True,use_extra_feature=False):
         super(pts_cls_dataset, self).__init__()
-        self.depth=max_depth
         self.num_points=num_points
         self.data_argument=data_argument
         self.extra_feature=use_extra_feature
@@ -92,105 +110,58 @@ def pts_collate(batch):
 
 ###########################
 # shapenet_core
+# shapenet_part_seg_hdf5_data.zip
 ###########################
 class shapenet_dataset(data.Dataset):
-    def __init__(self, root, npoints=1024, classification=False, class_choice=None, train=True):
-        self.npoints = npoints
-        self.root = root
-        self.catfile = os.path.join(self.root, 'synsetoffset2category.txt')
-        self.cat = {}
+    def __init__(self, datalist_path):
+        self.datalist = datalist_path
+        root = os.path.dirname(datalist_path)
 
-        self.classification = classification
+        classname_file = os.path.join(root, 'all_object_categories.txt')
+        with open(classname_file, 'r') as fin:
+            lines = [line.rstrip() for line in fin.readlines()]
+            self.classname = [line.split()[0] for line in lines]
+        print (self.classname)
 
-        with open(self.catfile, 'r') as f:
-            for line in f:
-                ls = line.strip().split()
-                self.cat[ls[0]] = ls[1]
-        # print(self.cat)
-        if not class_choice is None:
-            self.cat = {k: v for k, v in self.cat.items() if k in class_choice}
+        self.pts,self.label,self.seg_label=load_seg(self.datalist)
+        print ('data size:{} label size:{}'.format(self.pts.shape,self.seg_label.shape))
 
-        self.meta = {}
-        for item in self.cat:
-            # print('category', item)
-            self.meta[item] = []
-            dir_point = os.path.join(self.root, self.cat[item], 'points')
-            dir_seg = os.path.join(self.root, self.cat[item], 'points_label')  ## dir of each category
-            # print(dir_point, dir_seg)
-            fns = sorted(os.listdir(dir_point))
-            if train:
-                fns = fns[:int(len(fns) * 0.9)]
-            else:
-                fns = fns[int(len(fns) * 0.9):]  ## all filename of this category
-
-            # print(os.path.basename(fns))
-            for fn in fns:
-                token = (os.path.splitext(os.path.basename(fn))[0])
-                self.meta[item].append((os.path.join(dir_point, token + '.pts'), os.path.join(dir_seg, token + '.seg')))
-                ## self.meta -> dict of all category list
-
-        self.datapath = []
-        for item in self.cat:  ## item ->class
-            for fn in self.meta[item]:  ## fn ->file
-                self.datapath.append((item, fn[0], fn[1]))  ## all files: list of (class_name,file.pts,file.seg)
-
-        self.classes = dict(zip(self.cat, range(len(self.cat))))  ## dict of {class_name:class_index}
-        print(self.classes)
-        self.num_seg_classes = 0
-        if not self.classification:
-            for i in range(len(self.datapath) / 50):
-                l = len(np.unique(np.loadtxt(self.datapath[i][-1]).astype(np.uint8)))
-                if l > self.num_seg_classes:
-                    self.num_seg_classes = l  ## max num_seg_class in a single 3d shape
-                    # print(self.num_seg_classes)
 
     def __getitem__(self, index):
-        fn = self.datapath[index]
-        cls = self.classes[self.datapath[index][0]]
-        point_set = np.loadtxt(fn[1]).astype(np.float32)  ## [num_points,3]
-        seg = np.loadtxt(fn[2]).astype(np.int64)  ## [num_points,1]
-        # print(point_set.shape, seg.shape)
+        pts, label, seg_label = self.pts[index], self.label[index],self.seg_label[index]
 
-
-        point_set = point_set - np.expand_dims(np.mean(point_set, axis=0), 0)  ## -mean [num_points,3]
-        dist = np.max(np.sqrt(np.sum(point_set ** 2, axis=1)), 0)  ## scalar
-        dist = np.expand_dims(np.expand_dims(dist, 0), 1)  ## [1,1]
-        point_set = point_set / dist
-
-        choice = np.random.choice(len(seg), self.npoints, replace=True)
-        # resample
-        point_set = point_set[choice, :]
-        point_set = point_set + 1e-5 * np.random.rand(*point_set.shape)
-
-        split_dims,tree_pts=my_kdtree.make_cKDTree(point_set,depth=10)
-        tree_pts = torch.from_numpy(tree_pts.astype(np.float32))
-
-        if self.classification:
-            return split_dims,tree_pts, cls
-        else:
-            return point_set, seg
+        return pts, label, seg_label
 
     def __len__(self):
-        return len(self.datapath)
+        return len(self.pts)
+
+def pts_collate_seg(batch):
+    pts_batch=[]
+    label_batch=[]
+    seg_label_batch=[]
+
+    for sample in batch:
+        pts_batch.append(torch.from_numpy(sample[0]))
+        label_batch.append(sample[1])
+        seg_label_batch.append(torch.from_numpy(sample[2]))
+
+    pts_batch=torch.stack(pts_batch,dim=0)  ##[bs,P,3]
+    pts_batch=torch.transpose(pts_batch,dim0=1,dim1=2)
+    label_batch =torch.from_numpy(np.squeeze(label_batch))
+    seg_label_batch=torch.stack(seg_label_batch,dim=0)
+
+    return pts_batch.float(),label_batch.long(),seg_label_batch.long()
 
 
 
-"""
-t1=time.time()
-my_dataset=pts_cls_dataset(datalist_path='/home/gaoyuzhe/Downloads/PointCNN/data/modelnet/test_files.txt')
-a=my_dataset[1]
+if __name__ == '__main__':
+    dataset=shapenet_dataset(datalist_path='/home/gaoyuzhe/Downloads/3d_data/hdf5_data/test_hdf5_file_list.txt')
+    loader=torch.utils.data.DataLoader(dataset,batch_size=2, shuffle=True, collate_fn=pts_collate_seg)
 
-t2=time.time()
-print (t2-t1,'s')
+    for idx,(pts,label,seg_label) in enumerate(loader):
+        print (pts.size())
+        print (seg_label.size())
+        print (label.size())
+        break
 
-data_loader = torch.utils.data.DataLoader(my_dataset,batch_size=4, shuffle=True, collate_fn=kdtree_collate)
 
-for batch_idx, (split_dims,pts,label) in enumerate(data_loader):
-    print ('\n')
-    print (len(split_dims))
-    print (pts.size())
-    print (label.size())
-
-    print (split_dims[2])
-    break
-"""
