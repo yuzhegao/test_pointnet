@@ -158,7 +158,7 @@ def evaluate(model_test):
     total_correct = 0
 
     data_eval = shapenet_dataset(datalist_path=args.data_eval)
-    eval_loader = torch.utils.data.DataLoader(data_eval,
+    eval_loader = torch.utils.data.DataLoader(data_eval,num_workers=4,
                                   batch_size=4, shuffle=True, collate_fn=pts_collate_seg)
     print("dataset size:", len(eval_loader.dataset))
 
@@ -178,7 +178,7 @@ def evaluate(model_test):
 
         _, pred_index = torch.max(pred, dim=1)  ##[N,P]
         num_correct = (pred_index.eq(seg_label)).data.cpu().sum()
-        total_correct += num_correct
+        total_correct += num_correct.item()
 
     print('the average correct rate:{}'.format(total_correct * 1.0 / (len(eval_loader.dataset)*2048)))
 
