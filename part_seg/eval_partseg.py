@@ -119,7 +119,7 @@ def evaluate(model_test):
             iou_pc = []
             for part in part_label[label[i]]:  ## for each shape
                 gt = (seg[i] == part)  ## gt of this part_idx
-                predict = (pred_index[i] == part)
+                predict = (pred_index[i] == part).cpu()
 
                 intersection = (gt + predict) == 2
                 union = (gt + predict) >= 1

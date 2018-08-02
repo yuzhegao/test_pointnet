@@ -42,7 +42,7 @@ parser.add_argument('-bs',  '--batch-size', default=2 , type=int,
                     metavar='N', help='mini-batch size (default: 2)')
 parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
                     metavar='LR', help='initial learning rate')
-parser.add_argument('--decay_step', default=16881 * 20, type=int,
+parser.add_argument('--decay_step', default=200000, type=int,
                     metavar='LR', help='decay_step of learning rate')
 parser.add_argument('--decay_rate', default=0.5, type=float,
                     metavar='LR', help='decay_rate of learning rate')
@@ -78,7 +78,7 @@ def save_checkpoint(epoch,model,num_iter):
         'model': model.state_dict(),
         'epoch': epoch,
         'iter':num_iter,
-    },args.resume)
+    },resume)
 
 def log(filename,epoch,batch,loss,acc):
     f1=open(filename,'a')
@@ -193,11 +193,11 @@ def train():
     num_iter=0
     start_epoch=0
 
-    if os.path.exists(args.resume):
+    if os.path.exists(resume):
         if is_GPU:
-            checkoint = torch.load(args.resume)
+            checkoint = torch.load(resume)
         else:
-            checkoint = torch.load(args.resume, map_location=lambda storage, loc: storage)
+            checkoint = torch.load(resume, map_location=lambda storage, loc: storage)
         start_epoch = checkoint['epoch']
         net.load = net.load_state_dict(checkoint['model'])
         num_iter= checkoint['iter']
