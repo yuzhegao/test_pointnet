@@ -162,7 +162,7 @@ def evaluate(model_test):
                                   batch_size=4, shuffle=True, collate_fn=pts_collate_seg)
     print("dataset size:", len(eval_loader.dataset))
 
-    for batch_idx, (pts, label, seg) in enumerate(data_loader):
+    for batch_idx, (pts, label, seg) in enumerate(eval_loader):
         ## pts [N,P,3] label [N,] seg [N,P]
         if is_GPU:
             pts = Variable(pts.cuda())
