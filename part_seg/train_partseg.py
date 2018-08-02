@@ -1,6 +1,7 @@
 from __future__ import print_function,division
 
 import os
+import sys
 import time
 import shutil
 import argparse
@@ -12,6 +13,7 @@ import torch.utils.data
 import torch.nn.functional as F
 from torch.autograd import Variable
 
+sys.path.append('../')
 from pointnet_seg import PointNet_seg
 from data_utils import shapenet_dataset,pts_collate_seg
 
@@ -61,7 +63,6 @@ if is_GPU:
 my_dataset=shapenet_dataset(args.data)
 data_loader=torch.utils.data.DataLoader(my_dataset,
             batch_size=args.batch_size, shuffle=True, num_workers=4,collate_fn=pts_collate_seg)
-
 
 
 net=PointNet_seg()
@@ -176,7 +177,7 @@ def evaluate(model_test):
         pred, trans = net(pts)
 
         _, pred_index = torch.max(pred, dim=1)  ##[N,P]
-        num_correct = (pred_index.eq(seg)).data.cpu().sum()
+        num_correct = (pred_index.eq(seg_label)).data.cpu().sum()
         total_correct += num_correct
 
     print('the average correct rate:{}'.format(total_correct * 1.0 / (len(eval_loader.dataset)*2048)))
@@ -239,7 +240,7 @@ def train():
 
             _, pred_index = torch.max(pred, dim=1) ##[N,P]
 
-            num_correct = (pred_index.eq(seg)).data.cpu().sum()
+            num_correct = (pred_index.eq(seg_label)).data.cpu().sum()
 
             optimizer.zero_grad()
             loss.backward()
