@@ -148,7 +148,7 @@ def evaluate(model_test):
 
     print ('##############################################################')
     print('the average correct rate:{}'.format(total_correct * 1.0 / (len(eval_loader.dataset)*2048)))
-    print('the mean IOU overall :{}'.format(np.mean(mIOU_class * weight_cls)))
+    print('the mean IOU overall :{}'.format(mIOU_class * weight_cls))
     print ('##############################################################')
     print ('mIOU of classes')
     for i,cls in enumerate(data_eval.classname):
