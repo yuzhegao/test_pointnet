@@ -82,6 +82,10 @@ part_label = [
         [47, 48, 49]
     ]
 
+num_dataset_cls=np.array([2690, 76, 55, 898, 3758, 69, 787, 392, 1547, 451, 202, 184, 283, 66, 152, 5271])
+weight_cls=num_dataset_cls.astype(np.float32)*1.0/num_dataset_cls.sum().astype(np.float32)
+
+
 def evaluate(model_test):
     model_test.eval()
     total_correct = 0
@@ -144,7 +148,7 @@ def evaluate(model_test):
 
     print ('##############################################################')
     print('the average correct rate:{}'.format(total_correct * 1.0 / (len(eval_loader.dataset)*2048)))
-    print('the mean IOU overall :{}'.format(np.mean(mIOU_class)))
+    print('the mean IOU overall :{}'.format(np.mean(mIOU_class * weight_cls)))
     print ('##############################################################')
     print ('mIOU of classes')
     for i,cls in enumerate(data_eval.classname):
