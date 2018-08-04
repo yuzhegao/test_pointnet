@@ -91,20 +91,18 @@ def evaluate(model_test):
     model_test.eval()
     total_correct = 0
 
-    data_eval = indoor3d_dataset(datalist_path=args.data_eval,training=False)
+    data_eval = indoor3d_dataset(datalist_path=args.data,training=False)
     eval_loader = torch.utils.data.DataLoader(data_eval,num_workers=4,
                                   batch_size=4, shuffle=True, collate_fn=pts_collate_seg)
     print("Testing dataset size:", len(eval_loader.dataset))
 
-    for batch_idx, (pts, label, seg) in enumerate(eval_loader):
+    for batch_idx, (pts,  seg) in enumerate(eval_loader):
         ## pts [N,P,3] label [N,] seg [N,P]
         if is_GPU:
             pts = Variable(pts.cuda())
-            label = Variable(label.cuda())
             seg_label = Variable(seg.cuda())
         else:
             pts = Variable(pts)
-            label = Variable(label)
             seg_label = Variable(seg)
 
         ## pred [N,50,P]  trans [N,64,64]
@@ -114,11 +112,14 @@ def evaluate(model_test):
         num_correct = (pred_index.eq(seg_label)).data.cpu().sum()
         total_correct += num_correct.item()
 
-    print('the average correct rate:{}'.format(total_correct * 1.0 / (len(eval_loader.dataset)*2048)))
+    print('the average correct rate:{}'.format(total_correct * 1.0 /
+                                               (len(eval_loader.dataset)*4096)))
 
     model_test.train()
     with open(logname, 'a') as f:
-        f.write('\nthe evaluate average accuracy:{}'.format(total_correct * 1.0 / (len(eval_loader.dataset)*2048)))
+        f.write('\nthe evaluate average accuracy:{}'.format(total_correct * 1.0
+                                                            /
+                                                            (len(eval_loader.dataset)*4096)))
 
 
 def train():
@@ -144,16 +145,14 @@ def train():
     for epoch in xrange(start_epoch,args.epochs):
         init_epochtime = time.time()
 
-        for batch_idx, (pts, label, seg) in enumerate(data_loader):
+        for batch_idx, (pts, seg) in enumerate(data_loader):
             ## pts [N,P,3] label [N,] seg [N,P]
             t1=time.time()
             if is_GPU:
                 pts = Variable(pts.cuda())
-                label = Variable(label.cuda())
                 seg_label = Variable(seg.cuda())
             else:
                 pts = Variable(pts)
-                label = Variable(label)
                 seg_label = Variable(seg)
 
             ## pred [N,50,P]  trans [N,64,64]
@@ -185,13 +184,16 @@ def train():
 
             if num_iter%1==0:
                 print('In Epoch{} Iter{},loss={} accuracy={}  time cost:{}'.format(epoch, num_iter, loss.data,
-                                                                                   num_correct.item() / (args.batch_size*2048),
+                                                                                   num_correct.item()
+                                                                                   /
+                                                                                   (args.batch_size*4096),
                                                                                    t2 - t1))
             if num_iter%(args.log_step*10)==0 and num_iter!=0:
                 save_checkpoint(epoch, net, num_iter,)
                 evaluate(net)
             if num_iter%(args.log_step)==0 and num_iter!=0:
-                log(logname, epoch, num_iter, loss.data,num_correct.item() / (args.batch_size*2048))
+                log(logname, epoch, num_iter, loss.data,num_correct.item() /
+                    (args.batch_size*4096))
 
             if (num_iter*args.batch_size)%args.decay_step==0 and num_iter!=0:
                 f1 = open(logname, 'a')
