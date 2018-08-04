@@ -72,7 +72,7 @@ class transform_net(nn.Module):
 ######################
 
 class PointNet_seg(nn.Module):
-    def __init__(self, num_class=16,num_pts=2048,num_seg=50):
+    def __init__(self, num_class=13,num_pts=4096,num_seg=13):
         super(PointNet_seg, self).__init__()
         self.num_cls = num_class
         self.num_pts = num_pts
@@ -155,7 +155,7 @@ if __name__ == '__main__':
                                 batch_size=2, shuffle=True, collate_fn=pts_collate_seg)
 
     net = PointNet_seg()
-    for batch_idx, (pts, label, seg) in enumerate(data_loader):
+    for batch_idx, (pts, label) in enumerate(data_loader):
         if False:
             pts = Variable(pts.cuda())
             label = Variable(label.cuda())
