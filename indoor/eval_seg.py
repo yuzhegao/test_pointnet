@@ -48,6 +48,17 @@ if is_GPU:
 net=PointNet_seg()
 if is_GPU:
     net=net.cuda()
+if os.path.exists(resume):
+    if is_GPU:
+        checkoint = torch.load(resume)
+    else:
+        checkoint = torch.load(resume, map_location=lambda storage, loc: storage)
+    start_epoch = checkoint['epoch']
+    net.load = net.load_state_dict(checkoint['model'])
+    num_iter = checkoint['iter']
+    print('load the resume checkpoint,train from epoch{}'.format(start_epoch))
+else:
+    print("Warining! No resume checkpoint to load")
 
 def evaluate(model_test):
     model_test.eval()
@@ -87,3 +98,4 @@ def evaluate(model_test):
     print ('the overall accuarcy:{}'.format(np.mean(np.array(total_correct_class)/np.array(total_seen_class,dtype=np.float))))
 
 
+evaluate(net)
