@@ -88,11 +88,16 @@ def evaluate(model_test):
         total_correct += num_correct.item()
 
         ## calculate overall accuracy
-        for j in range(4096):
-            l = seg[batch_idx, j]
-            total_seen_class[l] += 1
-            total_correct_class[l] += (pred_index[batch_idx, j] == l)
+        pred_index = pred_index.cpu()
+        for i in range(pts.size(0)):
+            for j in range(4096):
+                l = seg[i, j]
+                total_seen_class[l] += 1
+                total_correct_class[l] += (pred_index[i, j].item() == l).item()
 
+        print ('finish {}/{}'.format(batch_idx,len(eval_loader)))
+    print (total_seen_class)
+    print (total_correct_class)
     print('the average correct rate:{}'.format(total_correct * 1.0 /
                                                (len(eval_loader.dataset)*4096)))
     print ('the overall accuarcy:{}'.format(np.mean(np.array(total_correct_class)/np.array(total_seen_class,dtype=np.float))))
