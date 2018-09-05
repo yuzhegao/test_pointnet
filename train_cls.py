@@ -23,6 +23,9 @@ parser.add_argument('--data', metavar='DIR',default='/home/yuzhe/Downloads/3d_da
                     help='txt file to dataset')
 parser.add_argument('--data-eval', metavar='DIR',default='/home/yuzhe/Downloads/3d_data/modelnet/test_files.txt',
                     help='txt file to validate dataset')
+parser.add_argument('--num-pts', default=1024 , type=int, metavar='N', help='mini-batch size (default: 2)')
+parser.add_argument('--normal', action='store_true', default=True, help='Whether to use normal information')
+
 parser.add_argument('--log', metavar='LOG',default='log_classification',
                     help='dir of log file and resume')
 
@@ -71,15 +74,19 @@ if is_GPU:
     torch.cuda.set_device(args.gpu)
 
 
-my_dataset=pts_cls_dataset(datalist_path=args.data)
+my_dataset=pts_cls_dataset(datalist_path=args.data,num_points=args.num_pts,use_extra_feature=args.normal)
 data_loader = torch.utils.data.DataLoader(my_dataset,
             batch_size=args.batch_size, shuffle=True, num_workers=4,collate_fn=pts_collate)
+if args.normal:
+    pts_featdim = 6
+else:
+    pts_featdim = 3
 
-net=PointNet_cls()
+net = PointNet_cls(num_pts=args.num_pts,feat_dim=pts_featdim)
 if is_GPU:
-    net=net.cuda()
+    net = net.cuda()
 optimizer = torch.optim.Adam(net.parameters(), lr=args.lr, betas=(0.9, 0.999))
-critenrion=nn.NLLLoss()
+critenrion = nn.NLLLoss()
 
 def save_checkpoint(epoch,model,num_iter):
     torch.save({

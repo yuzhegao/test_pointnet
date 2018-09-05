@@ -57,7 +57,6 @@ class transform_net(nn.Module):
 
         x = torch.squeeze(self.max_pool(x),dim=2)  ##[N,1024]
 
-
         x = self.fc1(x)
         x = self.fc2(x)
         x = self.fc3(x)  ##[N,K*K]
@@ -70,12 +69,12 @@ class transform_net(nn.Module):
 
 
 class PointNet_cls(nn.Module):
-    def __init__(self, num_class=40,num_pts=1024):
+    def __init__(self, num_class=40,num_pts=1024,feat_dim=3):
         super(PointNet_cls, self).__init__()
         self.num_cls = num_class
         self.num_pts=num_pts
         self.conv1 = nn.Sequential(
-            nn.Conv1d(3, 64, 1, 1),
+            nn.Conv1d(feat_dim, 64, 1, 1),
             nn.BatchNorm1d(64),
             nn.ReLU(),
         )
@@ -101,7 +100,7 @@ class PointNet_cls(nn.Module):
             nn.ReLU(),
         )
 
-        self.input_transorm_net = transform_net(featdim=3,num_pts=num_pts)
+        self.input_transorm_net = transform_net(featdim=feat_dim,num_pts=num_pts)
         self.feature_transorm_net = transform_net(featdim=64,num_pts=num_pts)
         self.max_pool = nn.MaxPool1d(kernel_size=self.num_pts)
 
@@ -138,22 +137,21 @@ class PointNet_cls(nn.Module):
 
         return pred,trans2
 
+if __name__ == '__main__':
+    from data_utils import pts_cls_dataset, pts_collate
+    num_pts = 2048
 
+    my_dataset = pts_cls_dataset(datalist_path='/home/yuzhe/Downloads/3d_data/modelnet/test_files.txt',num_points=num_pts,use_extra_feature=True)
+    data_loader = torch.utils.data.DataLoader(my_dataset,batch_size=2, shuffle=True, collate_fn=pts_collate)
 
-"""
-from data_utils import pts_cls_dataset,pts_collate
-my_dataset=pts_cls_dataset(datalist_path='/home/gaoyuzhe/Downloads/3d_data/modelnet/test_files.txt',num_points=2048)
-data_loader = torch.utils.data.DataLoader(my_dataset,
-            batch_size=2, shuffle=True, collate_fn=pts_collate)
-
-net=PointNet_cls()
-for batch_idx, (pts, label) in enumerate(data_loader):
-    if False:
-        pts = Variable(pts.cuda())
-        label = Variable(label.cuda())
-    else:
-        pts = Variable(pts)
-        label = Variable(label)
-    pred = net(pts)
-    exit()
-"""
+    net = PointNet_cls(num_pts=num_pts,feat_dim=6)
+    for batch_idx, (pts, label) in enumerate(data_loader):
+        if False:
+            pts = Variable(pts.cuda())
+            label = Variable(label.cuda())
+        else:
+            pts = Variable(pts)
+            label = Variable(label)
+        pred,_ = net(pts)
+        print (pred.size())
+        exit()
