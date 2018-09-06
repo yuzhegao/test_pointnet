@@ -107,7 +107,7 @@ def evaluate(model_test):
     model_test.eval()
     total_correct=0
 
-    data_eval = pts_cls_dataset(datalist_path=args.data_eval,data_argument=False)
+    data_eval = pts_cls_dataset(datalist_path=args.data_eval,data_argument=False,use_extra_feature=args.normal)
     eval_loader = torch.utils.data.DataLoader(data_eval,
                     batch_size=4, shuffle=True, collate_fn=pts_collate)
     print ("dataset size:",len(eval_loader.dataset))
