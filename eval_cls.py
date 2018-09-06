@@ -25,6 +25,9 @@ parser.add_argument('--shape-class', metavar='DIR',default='/home/gaoyuzhe/Downl
                     help='txt file of shape class name in dataset')
 parser.add_argument('--gpu', default=0, type=int, metavar='N',
                     help='the index  of GPU where program run')
+parser.add_argument('--num-pts', default=1024 , type=int, metavar='N', help='mini-batch size (default: 2)')
+parser.add_argument('--normal', action='store_true', default=True, help='Whether to use normal information')
+
 parser.add_argument('-bs',  '--batch-size', default=4 , type=int,
                     metavar='N', help='mini-batch size (default: 2)')
 
@@ -38,7 +41,12 @@ print (SHAPE_NAMES)
 if is_GPU:
     torch.cuda.set_device(args.gpu)
 
-net=PointNet_cls()
+if args.normal:
+    pts_featdim = 6
+else:
+    pts_featdim = 3
+
+net = PointNet_cls(num_pts=args.num_pts,feat_dim=pts_featdim)
 if is_GPU:
     net=net.cuda()
 critenrion=nn.NLLLoss()
@@ -63,7 +71,7 @@ def evaluate(model_test):
     total_seen_class = [0 for _ in range(NUM_CLASSES)]
     total_correct_class = [0 for _ in range(NUM_CLASSES)]
 
-    data_eval = pts_cls_dataset(datalist_path=args.data_eval,data_argument=False)
+    data_eval = pts_cls_dataset(datalist_path=args.data_eval,data_argument=False,num_points=args.num_pts,use_extra_feature=args.normal)
     eval_loader = torch.utils.data.DataLoader(data_eval,
                     batch_size=args.batch_size, shuffle=True, collate_fn=pts_collate)
     print ("dataset size:",len(eval_loader.dataset))
