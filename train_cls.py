@@ -24,7 +24,7 @@ parser.add_argument('--data', metavar='DIR',default='/home/yuzhe/Downloads/3d_da
 parser.add_argument('--data-eval', metavar='DIR',default='/home/yuzhe/Downloads/3d_data/modelnet/test_files.txt',
                     help='txt file to validate dataset')
 parser.add_argument('--num-pts', default=1024 , type=int, metavar='N', help='mini-batch size (default: 2)')
-parser.add_argument('--normal', action='store_true', default=True, help='Whether to use normal information')
+parser.add_argument('--normal', action='store_true', default=False, help='Whether to use normal information')
 
 parser.add_argument('--log', metavar='LOG',default='log_classification',
                     help='dir of log file and resume')

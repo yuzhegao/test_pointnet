@@ -26,7 +26,7 @@ parser.add_argument('--shape-class', metavar='DIR',default='/home/gaoyuzhe/Downl
 parser.add_argument('--gpu', default=0, type=int, metavar='N',
                     help='the index  of GPU where program run')
 parser.add_argument('--num-pts', default=1024 , type=int, metavar='N', help='mini-batch size (default: 2)')
-parser.add_argument('--normal', action='store_true', default=True, help='Whether to use normal information')
+parser.add_argument('--normal', action='store_true', default=False, help='Whether to use normal information')
 
 parser.add_argument('-bs',  '--batch-size', default=4 , type=int,
                     metavar='N', help='mini-batch size (default: 2)')
@@ -50,8 +50,10 @@ net = PointNet_cls(num_pts=args.num_pts,feat_dim=pts_featdim)
 if is_GPU:
     net=net.cuda()
 critenrion=nn.NLLLoss()
-
+print (args.resume)
+print (os.path.exists(args.resume))
 if os.path.exists(args.resume):
+    print ('ok')
     if is_GPU:
         checkoint = torch.load(args.resume)
     else:
